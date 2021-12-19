@@ -12,32 +12,29 @@ def main():
 
     # s(n)
     signal = data[:, 0]
-    plt.plot(signal)
-    plt.show()
 
     signal = signal * numpy.hamming(len(signal))
-    plt.plot(signal)
-    plt.show()
 
     # x(n)
     signal = numpy.fft.fft(signal)
-    plt.plot(signal)
-    plt.show()
 
     # |x(w)|
     signal = numpy.abs(signal)
-    plt.plot(signal)
-    plt.show()
 
     # log(x(w))
     signal = numpy.log(signal)
-    plt.plot(signal)
-    plt.show()
 
     # c(n)
     signal = numpy.fft.ifft(signal)
     plt.plot(signal)
     plt.show()
+
+    move = 60
+
+    result = (numpy.argmax(signal[move:])) / (len(data) / rate)
+    result2 = rate / numpy.argmax(signal[60 : -60])
+
+    print(result, result2, numpy.argmax(signal[100 : -100]),  numpy.max(signal[100 : -100]))
 
 
 if __name__ == "__main__":
