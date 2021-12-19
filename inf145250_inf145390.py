@@ -41,7 +41,7 @@ def main():
 
         end_signal = processed[:lenght] * decimate2[:lenght] * decimate3[:lenght] * decimate4[:lenght]
 
-        shift = 70
+        shift = 60
 
         result = (numpy.argmax(end_signal[shift:]) + shift) / (len(data) / rate)
 
