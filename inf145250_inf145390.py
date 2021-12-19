@@ -1,41 +1,63 @@
 import numpy
+import scipy.signal as signal
 import soundfile
 import sys
+import os
 
 from matplotlib import pyplot as plt
 
 
 def main():
-    filename = sys.argv[1]
+    files = os.listdir("train")
+    odp = 0
 
-    data, rate = soundfile.read(f"{filename}")
+    for file in files:
+        # filename = sys.argv[1]
+        filename = f"train/{file}"
 
-    # s(n)
-    signal = data[:, 0]
+        data, rate = soundfile.read(f"{filename}")
 
-    signal = signal * numpy.hamming(len(signal))
+        # max_value = numpy.max(data)
+        # data = data.astype(float) / 2 ** 16
 
-    # x(n)
-    signal = numpy.fft.fft(signal)
+        data = [numpy.mean(value) for value in data]
+        # data = [value * (max_value / 2) for value in data]
 
-    # |x(w)|
-    signal = numpy.abs(signal)
 
-    # log(x(w))
-    signal = numpy.log(signal)
+        lenght = len(data)
+        offset = int(len(data) / 4)
 
-    # c(n)
-    signal = numpy.fft.ifft(signal)
-    plt.plot(signal)
-    plt.show()
+        data = data[offset:(lenght - offset)]
 
-    move = 60
+        # processed = data * numpy.kaiser(len(data), 5.0) # Może hamming?
+        processed = data * numpy.hamming(len(data))
+        processed = numpy.abs(numpy.fft.rfft(processed))
 
-    result = (numpy.argmax(signal[move:])) / (len(data) / rate)
-    result2 = rate / numpy.argmax(signal[60 : -60])
+        decimate2 = signal.decimate(processed, 2)
+        decimate3 = signal.decimate(processed, 3)
+        decimate4 = signal.decimate(processed, 4)
 
-    print(result, result2, numpy.argmax(signal[100 : -100]),  numpy.max(signal[100 : -100]))
+        lenght = len(decimate4)
 
+        end_signal = processed[:lenght] * decimate2[:lenght] * decimate3[:lenght] * decimate4[:lenght]
+
+        shift = 70
+
+        result = (numpy.argmax(end_signal[shift:]) + shift) / (len(data) / rate)
+
+        answer = 'M'
+        if result > 165:
+            answer = 'K'
+
+
+        correct_answer = file[4]
+
+        if answer == correct_answer:
+            odp+=1
+
+        print(file, correct_answer, answer, result)
+
+    print(odp, odp/len(files))
 
 if __name__ == "__main__":
     main()
