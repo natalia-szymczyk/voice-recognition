@@ -1,75 +1,77 @@
-import copy
-import numpy
-import scipy.signal as signal
 import soundfile
-import sys
+import numpy as np
 import os
-
-from matplotlib import pyplot as plt
-from matplotlib.pyplot import stem
+from scipy.signal import decimate
 
 
 def main():
     files = os.listdir("train")
     odp = 0
 
-    k_k = 0
-    k_m = 0
-    m_m = 0
-    m_k = 0
-
     for file in files:
-        # filename = sys.argv[1]
-        filename = f"train/{file}"
+        data, rate = soundfile.read(f"train/{file}", always_2d=True)
+        # y = [np.mean(value) for value in data]
+        if data.shape[1] == 2:
+            y = (data[:, 0] + data[:, 1]) / 2
+        else:
+            y = data[:, 0]
 
-        data, rate = soundfile.read(f"{filename}")
+        x = np.fft.fftfreq(len(data), 1 / rate)
 
-        data = [numpy.mean(value) for value in data]
+        y = y * np.hamming(len(y))
+        y = np.fft.fft(y)
+        y = abs(y)
 
-        x = numpy.fft.fftfreq(len(data), 1 / rate)
+        hps_y = y.copy()
+        for k in range(2, 5):
+            tmp_d = decimate(y, k)
+            hps_y[:len(tmp_d)] *= tmp_d
 
-        y = data * numpy.kaiser(len(data), beta = 50)
-        y = numpy.fft.fft(y)
-        y = numpy.abs(y)
+        hps_y[:10] = 0
 
-        tmp_y = y.copy()
+        male = [80, 173]
+        female = [173, 350]
+        mask = (male[0] <= x) & (x <= female[1])
 
-        for i in range(2, 5):
-            tmp_d = signal.decimate(y, i)
-            tmp_y[:len(tmp_d)] *= tmp_d
+        result = x[mask][np.argmax(hps_y[mask])]
 
-        # plt.plot(tmp_y)
-        # plt.show()
+        #
+        # print(mask.shape)
+        # print(hps_y.shape)
 
-        m0, m1 = 85, 175  # typically [85,180]
-        f0, f1 = 175, 355  # typically [165,255]
-        mask = (m0 <= x) & (x <= f1)
-        result = x[mask][numpy.argmax(y[mask])]
-        answer = ''
+        # mask2 = np.ndarray(hps_y.shape, dtype=bool)
+        #
+        # for i, value in enumerate(hps_y):
+        #     if i < male[0] or i > female[1]:
+        #         mask2[i] = False
+        #     else:
+        #         mask2[i] = True
 
-        if m0 <= result < m1:
-            answer = 'M'
-        elif f0 <= result < f1:
+        # print(len(mask2))
+        # print(mask == mask2)
+        # result = x[np.argmax(voice)]
+
+        # print(hps_y[mask])
+        # print(voice)
+
+        answer = 'M'
+        if female[0] <= result <= female[1]:
             answer = 'K'
-
 
         correct_answer = file[4]
 
         if answer == correct_answer:
-            odp+=1
-
-        if correct_answer == "K" and answer == "K":
-            k_k += 1
-        elif correct_answer == "K" and answer == "M":
-            k_m += 1
-        elif correct_answer == "M" and answer == "M":
-            m_m += 1
-        elif correct_answer == "M" and answer == "K":
-            m_k += 1
+            odp += 1
 
         print(file, correct_answer, answer, result)
 
-    print(f"Skuteczność = {odp}/{len(files)} = {odp/len(files)}, k_k: {k_k}, k_m: {k_m}, m_m: {m_m}, m_k: {m_k} ")
+    print(f"Skuteczność = {odp}/{len(files)} = {odp / len(files)}")
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
+    # try:
     main()
+    # except:
+    #     print('K')
+
+
