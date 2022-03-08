@@ -1,41 +1,43 @@
-import numpy
 import soundfile
+import numpy as np
 import sys
-
-from matplotlib import pyplot as plt
+from scipy.signal import decimate
 
 
 def main():
-    filename = sys.argv[1]
+    file = sys.argv[1]
+    data, rate = soundfile.read(file)
 
-    data, rate = soundfile.read(f"{filename}")
+    y = [np.mean(value) for value in data]
 
-    # s(n)
-    signal = data[:, 0]
+    x = np.fft.fftfreq(len(data), 1 / rate)
+    y = y * np.hamming(len(y))
+    y = np.fft.fft(y)
+    y = abs(y)
 
-    signal = signal * numpy.hamming(len(signal))
+    hps_y = y.copy()
+    for k in range(2, 5):
+        hps_y[:len(decimate(y, k))] *= decimate(y, k)
 
-    # x(n)
-    signal = numpy.fft.fft(signal)
+    hps_y[:10] = 0
 
-    # |x(w)|
-    signal = numpy.abs(signal)
+    male = [80, 173]
+    female = [173, 350]
+    mask = (male[0] <= x) & (x <= female[1])
 
-    # log(x(w))
-    signal = numpy.log(signal)
+    result = x[mask][np.argmax(hps_y[mask])]
 
-    # c(n)
-    signal = numpy.fft.ifft(signal)
-    plt.plot(signal)
-    plt.show()
+    answer = 'M'
+    if female[0] <= result <= female[1]:
+        answer = 'K'
 
-    move = 60
+    correct_answer = file[-5]
 
-    result = (numpy.argmax(signal[move:])) / (len(data) / rate)
-    result2 = rate / numpy.argmax(signal[60 : -60])
-
-    print(result, result2, numpy.argmax(signal[100 : -100]),  numpy.max(signal[100 : -100]))
+    print(answer, result)
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as ex:
+        print('K')
